@@ -3,7 +3,16 @@
   "version": "0.1.0",
   "description": "Unofficial MCP server that bridges AI agents to TikTok Effect House through the editor's own eh kernel.",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Jeferson Araujo (https://github.com/jepharaujo)",
+  "homepage": "https://github.com/jepharaujo/effect-house-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jepharaujo/effect-house-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jepharaujo/effect-house-mcp/issues"
+  },
   "type": "module",
   "bin": {
     "effect-house-mcp": "dist/src/index.js"
