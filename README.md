@@ -1,95 +1,103 @@
 # effect-house-mcp
 
-Servidor MCP (Model Context Protocol) **não oficial** que conecta Claude Code, Codex e qualquer outro cliente MCP ao
-**TikTok Effect House**, para criar e editar efeitos por conversa a partir das suas próprias sessões de IA.
+**English** · [Português](README.pt-BR.md)
 
-> Não é afiliado ao TikTok. Usa interfaces internas e não documentadas do Effect House 5.16, que podem mudar em
-> qualquer atualização do app.
+An **unofficial** MCP (Model Context Protocol) server that connects Claude Code, Codex and any other MCP client to
+**TikTok Effect House**, so you can build and edit effects by conversation from your own AI sessions.
 
-## Por que ele existe
+> Not affiliated with or endorsed by TikTok. It relies on internal, undocumented interfaces of Effect House 5.16 that
+> may change with any app update. Effect House and TikTok are trademarks of their respective owners.
 
-Desde a versão 5.16, o Effect House traz um assistente de IA (painel **Effect House AI**) que abre Claude Code, Codex
-ou Cursor dentro do próprio app. Por baixo, ele usa dois componentes locais que este projeto reaproveita:
+## Why it exists
 
-- **Kernel `eh`** (`Contents/MacOS/eh_front`): servidor MCP por stdio com a ferramenta `run`, que executa células de
-  JavaScript com uma API `eh` já conectada ao editor (cena, scripts APJS, assets, preview, screenshots, plano). Ele
-  procura o editor sozinho a cada célula, então sobrevive a reinícios do app.
-- **Servidor de automação** (HTTP em `127.0.0.1`, porta anunciada em
-  `~/Library/Application Support/EffectHouse/Instances/*/MCP/mcp_port.json`): 33 ferramentas de alto nível
+Since version 5.16, Effect House includes an AI assistant (the **Effect House AI** panel) that launches Claude Code,
+Codex or Cursor inside the app. Under the hood it relies on two local components, which this project reuses:
+
+- **The `eh` kernel** (`Contents/MacOS/eh_front`): a stdio MCP server whose `run` tool executes JavaScript cells with
+  an `eh` API already connected to the editor (scene, APJS scripts, assets, preview, screenshots, planning). It finds
+  the editor on its own before every cell, so it survives app restarts.
+- **The automation server** (HTTP on `127.0.0.1`, port announced in
+  `~/Library/Application Support/EffectHouse/Instances/*/MCP/mcp_port.json`): 33 high-level tools
   (`get_scene`, `edit_by_dsl`, `capture_preview`, `generate_image`…).
 
-A documentação oficial só cobre o uso pelo painel, que roda um agente por vez dentro do app. Esta ponte deixa você usar
-esses recursos de fora: das suas sessões, com suas skills, memórias e outros MCPs (Blender, geração de imagem etc.).
+The official docs only cover the in-app panel, which runs one agent at a time inside Effect House. This bridge lets
+you use the same capabilities from outside: from your own sessions, with your skills, memory and other MCP servers
+(Blender, image generation and so on).
 
-## O que a ponte acrescenta
+## What the bridge adds
 
-| Ferramenta | O que faz |
+| Tool | What it does |
 | --- | --- |
-| `run`, `reset`, `status` | Kernel `eh` oficial, repassado sem alterações (textos, imagens e erros). |
-| `instances` | Instalação e versão do app, editores abertos (porta, heartbeat, saúde), projeto aberto, estado do kernel e pasta do workspace. |
-| `launch` | Abre o Effect House (opcionalmente com um projeto) e espera o servidor responder. Não abre um segundo editor. |
-| `docs_search`, `docs_read` | Busca e leitura da documentação oficial em [effecthouse.tiktok.com/learn](https://effecthouse.tiktok.com/learn/) (todas as páginas do sitemap), convertida em Markdown e guardada em cache. |
-| `workspace_read` | Lê as referências do kernel (skills, declarações APJS, fluxos de planejamento) para clientes que não leem arquivos locais. |
-| Ferramentas de automação | Opcionais (`EH_MCP_AUTOMATION_TOOLS=1`): as 33 ferramentas HTTP expostas diretamente. Desligadas por padrão porque somam ~70 KB de definições e o kernel já as alcança. |
+| `run`, `reset`, `status` | The official `eh` kernel, forwarded unchanged (text, images and errors). |
+| `instances` | App install and version, running editors (port, heartbeat, health), the open project, kernel state and workspace folder. |
+| `launch` | Opens Effect House (optionally with a project) and waits until it answers. Never starts a second editor. |
+| `docs_search`, `docs_read` | Search and read the official docs at [effecthouse.tiktok.com/learn](https://effecthouse.tiktok.com/learn/) (every page in the sitemap), converted to Markdown and cached. |
+| `workspace_read` | Reads the kernel references (skills, APJS declarations, planning flows) for clients that cannot read local files. |
+| Automation tools | Optional (`EH_MCP_AUTOMATION_TOOLS=1`): the 33 HTTP tools exposed directly. Off by default: they add ~70 KB of tool definitions and the kernel already reaches them. |
 
-Além disso, a ponte:
+The bridge also:
 
-- lê o guia oficial do workspace (`AGENTS.md`) da versão instalada e o entrega como `instructions` do servidor MCP;
-- mantém uma cópia própria do workspace do kernel em `~/Library/Application Support/effect-house-mcp/workspace`,
-  sem os arquivos de configuração de agentes do app, e a renova quando o Effect House é atualizado;
-- reinicia o kernel se ele cair e avisa que os valores de `session` foram perdidos;
-- recusa `run` com uma mensagem clara quando o Effect House não está aberto.
+- reads the official workspace guide (`AGENTS.md`) of the installed version and serves it as the MCP server
+  `instructions`;
+- keeps its own copy of the kernel workspace in `~/Library/Application Support/effect-house-mcp/workspace`, without the
+  app's agent-host config files, and refreshes it when Effect House is updated;
+- restarts the kernel if it exits and says that `session` values were lost;
+- refuses `run` with a clear message when Effect House is not open.
 
-## Requisitos
+## Requirements
 
-- macOS (testado no Apple Silicon). Outros sistemas exigem as variáveis de ambiente abaixo e não foram testados.
-- Effect House **5.16 ou mais recente**, instalado e com login feito.
-- Node.js 20 ou mais recente.
+- macOS (tested on Apple Silicon). Other systems need the environment variables below and are untested.
+- Effect House **5.16 or later**, installed and signed in.
+- Node.js 20 or later.
 
-## Instalação
+## Install
 
 ```bash
+git clone https://github.com/jepharaujo/effect-house-mcp.git
+cd effect-house-mcp
 npm ci
 npm run build
 npm run doctor
 ```
 
-O `doctor` mostra o que a ponte encontrou: app, versão, instâncias abertas e workspace. Ele sai com código 1 se faltar
-algo essencial.
+`doctor` prints what the bridge found: the app, its version, running instances and the workspace. It exits with code 1
+when something essential is missing.
 
 ### Claude Code
 
+Run this from the project folder (the absolute paths of Node and the server are stored in the registration):
+
 ```bash
-claude mcp add effect-house -s user -- /opt/homebrew/bin/node "/caminho/para/effect-house-mcp/dist/src/index.js"
+claude mcp add effect-house -s user -- "$(which node)" "$(pwd)/dist/src/index.js"
 ```
 
-Uma célula pode levar até 10 minutos (montar cena, script e playtest numa chamada só). Se o Claude Code encerrar
-chamadas longas antes disso, aumente o limite com a variável `MCP_TOOL_TIMEOUT=660000`.
+A cell may take up to 10 minutes (building a scene, a script and a playtest in one call). If Claude Code stops long
+calls earlier, raise the limit with `MCP_TOOL_TIMEOUT=660000`.
 
 ### Codex
 
-Em `~/.codex/config.toml`:
+In `~/.codex/config.toml`, with the paths of your machine (`which node` and the project folder):
 
 ```toml
 [mcp_servers.effect-house]
 command = "/opt/homebrew/bin/node"
-args = ["/caminho/para/effect-house-mcp/dist/src/index.js"]
+args = ["/path/to/effect-house-mcp/dist/src/index.js"]
 startup_timeout_sec = 30
-# Uma célula pode durar até o limite de 10 minutos do kernel.
+# A cell may run up to the kernel's 10-minute limit.
 tool_timeout_sec = 660
 ```
 
-### Outros clientes
+### Other clients
 
-Qualquer cliente MCP por stdio: comando `node`, argumento `dist/src/index.js`.
+Any stdio MCP client: command `node`, argument `dist/src/index.js`. Desktop apps usually need the absolute path of Node.
 
-## Como usar
+## Usage
 
-Com o Effect House aberto, peça ao agente algo como “abre um projeto novo e cria um efeito de sardas no rosto”. O
-agente segue o guia oficial: confere o projeto com `eh.project.status()`, preenche e valida um plano
-(`eh.plan.fromTemplate` / `eh.plan.validate`), constrói a cena e verifica com capturas do preview.
+With Effect House open, ask your agent something like “open a new project and make a freckles face effect”. The agent
+follows the official guide: it checks the project with `eh.project.status()`, fills and validates a plan
+(`eh.plan.fromTemplate` / `eh.plan.validate`), builds the scene and verifies it with preview captures.
 
-Exemplo de célula para o `run`:
+A cell for `run`:
 
 ```js
 const status = await eh.project.status();
@@ -97,66 +105,74 @@ const scene = await eh.scene.getScene();
 return { status, scene };
 ```
 
-`help()` dentro de uma célula lista toda a API (`help('scene')`, `help('EHObject')`, `help('preview.screenshot')`).
+`help()` inside a cell lists the whole API (`help('scene')`, `help('EHObject')`, `help('preview.screenshot')`).
 
-## Cuidados
+## Things to keep in mind
 
-- O agente edita **o projeto aberto, ao vivo**, sem sandbox. Salve antes de mudanças grandes.
-- Use um agente por vez: não rode o painel Effect House AI e esta ponte no mesmo projeto ao mesmo tempo.
-- Capturas do preview vão para o provedor de IA do seu cliente, como qualquer imagem que o agente lê.
-- O Effect House exige um plano validado antes de construir cena; essa regra vem do kernel oficial e a ponte a respeita.
-- `docs_read` só busca páginas de `effecthouse.tiktok.com/learn/`; a ponte só conversa com o editor em `127.0.0.1`.
+- The agent edits **the open project, live**, with no sandbox. Save before large changes.
+- Use one agent at a time: do not run the Effect House AI panel and this bridge on the same project at once.
+- Preview captures go to your client's AI provider, like any image the agent reads.
+- Effect House requires a validated plan before building a scene; that rule comes from the official kernel and the
+  bridge keeps it.
+- `docs_read` only fetches pages under `effecthouse.tiktok.com/learn/`; the bridge only talks to the editor on
+  `127.0.0.1`.
 
-## Variáveis de ambiente
+## Environment variables
 
-| Variável | Uso |
+| Variable | Use |
 | --- | --- |
-| `EH_APP_PATH` | Caminho do app (padrão: `/Applications/Effect House.app`, ou o que o próprio app registrou em `app.json`). |
-| `EH_EXECUTABLE_DIR`, `EH_FRONT_PATH`, `EH_WORKSPACE_TEMPLATE`, `EH_SUPPORT_DIR` | Caminhos individuais, para instalações fora do padrão ou outros sistemas. |
-| `EH_PROJECT` | Prende o kernel ao editor que estiver com este projeto aberto (útil com vários editores). |
-| `EH_MCP_AUTOMATION_TOOLS=1` | Expõe também as ferramentas de automação do editor. |
-| `EH_MCP_STATE_DIR`, `EH_MCP_CACHE_DIR` | Onde ficam a cópia do workspace e o cache da documentação. |
-| `EH_MCP_LOG_LEVEL` | `debug`, `info` (padrão), `warn` ou `error`; os logs vão para o stderr. |
+| `EH_APP_PATH` | App path (default: `/Applications/Effect House.app`, or what the app recorded in its `app.json`). |
+| `EH_EXECUTABLE_DIR`, `EH_FRONT_PATH`, `EH_WORKSPACE_TEMPLATE`, `EH_SUPPORT_DIR` | Individual paths, for non-standard installs or other systems. |
+| `EH_PROJECT` | Pins the kernel to the editor that has this project open (useful with several editors). |
+| `EH_MCP_AUTOMATION_TOOLS=1` | Also exposes the editor's automation tools. |
+| `EH_MCP_STATE_DIR`, `EH_MCP_CACHE_DIR` | Where the workspace copy and the docs cache live. |
+| `EH_MCP_LOG_LEVEL` | `debug`, `info` (default), `warn` or `error`; logs go to stderr. |
 
-## Arquitetura
+## Architecture
 
 ```text
-cliente MCP (Claude Code, Codex…)
+MCP client (Claude Code, Codex…)
         │ stdio
         ▼
 effect-house-mcp ──────────────► docs: effecthouse.tiktok.com/learn (sitemap + cache)
    │        │
-   │ stdio  │ HTTP (127.0.0.1, porta do registro de instâncias)
+   │ stdio  │ HTTP (127.0.0.1, port from the instance registry)
    ▼        ▼
-eh_front ─► kernel eh ─────────► servidor de automação do Effect House ─► editor aberto
+eh_front ─► eh kernel ─────────► Effect House automation server ─► open editor
 ```
 
-| Arquivo | Responsabilidade |
+| File | Responsibility |
 | --- | --- |
-| `src/index.ts` | Ponto de entrada e CLI (`serve`, `doctor`, `index-docs`). |
-| `src/server.ts` | Servidor MCP: lista e roteia ferramentas, ferramentas próprias. |
-| `src/kernel.ts` | Cliente do `eh_front`: início sob demanda, reinício, stderr para diagnóstico. |
-| `src/automation.ts` | Cliente do servidor HTTP do editor; só repete uma chamada se a conexão foi recusada. |
-| `src/registry.ts` | Leitura do registro de instâncias, heartbeat e health check. |
-| `src/workspace.ts` | Cópia do workspace, instruções do servidor e `workspace_read` (sem sair da pasta). |
-| `src/docs.ts`, `src/html.ts` | Sitemap, busca, cache e conversão HTML → Markdown da documentação. |
-| `src/toolcache.ts` | Guarda a lista de ferramentas do kernel por versão, para não iniciar o kernel só para listar. |
+| `src/index.ts` | Entry point and CLI (`serve`, `doctor`, `index-docs`). |
+| `src/server.ts` | MCP server: lists and routes tools, the bridge's own tools. |
+| `src/kernel.ts` | `eh_front` client: lazy start, restart, stderr kept for diagnostics. |
+| `src/automation.ts` | Client of the editor's HTTP server; retries a call only when the connection was refused. |
+| `src/registry.ts` | Instance registry, heartbeat and health check. |
+| `src/workspace.ts` | Workspace copy, server instructions and `workspace_read` (never outside the folder). |
+| `src/docs.ts`, `src/html.ts` | Sitemap, search, cache and HTML → Markdown conversion of the docs. |
+| `src/toolcache.ts` | Remembers the kernel tool list per version, so listing tools does not start the kernel. |
 
-## Desenvolvimento
+## Development
 
 ```bash
-npm run check        # lint (Biome), tipos e testes unitários
-npm run smoke        # teste ao vivo, só leitura, com o Effect House aberto (rode npm run build antes)
-npm run docs:index   # baixa todas as páginas da documentação para busca em texto completo
+npm run check        # lint (Biome), types and unit tests
+npm run smoke        # live, read-only check with Effect House open (run npm run build first)
+npm run docs:index   # cache every docs page for full-text search
 ```
 
-Os testes unitários não precisam do Effect House. O `smoke` sobe a ponte como um cliente MCP faria e chama cada família
-de ferramentas.
+Unit tests do not need Effect House. `smoke` starts the bridge the way an MCP client would and calls each tool family.
 
-## Problemas comuns
+Tested with Effect House 5.16.0 on macOS (Apple Silicon), Node.js 25 and Claude Code. Issues and pull requests are
+welcome, especially reports from other Effect House versions.
 
-- **“Effect House is not open”**: abra o app ou chame `launch`; confira com `instances`.
-- **O kernel não inicia**: `npm run doctor` deve mostrar `ehFrontExists: true`. Versões anteriores à 5.16 não têm o kernel.
-- **Vários editores abertos**: defina `EH_PROJECT` com a pasta do projeto que o agente deve usar.
-- **Busca da documentação só por URL**: o texto completo entra no índice conforme as páginas são lidas, ou de uma vez
-  com `npm run docs:index`.
+## Troubleshooting
+
+- **"Effect House is not open"**: open the app or call `launch`; check with `instances`.
+- **The kernel does not start**: `npm run doctor` should show `ehFrontExists: true`. Versions before 5.16 have no kernel.
+- **Several editors open**: set `EH_PROJECT` to the folder of the project the agent should use.
+- **Docs search matches only URLs**: full text joins the index as pages are read, or all at once with
+  `npm run docs:index`.
+
+## License
+
+[MIT](LICENSE).
